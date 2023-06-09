@@ -6,11 +6,12 @@ const http = require("http");
 const cors = require("cors");
 const helmet = require("helmet");
 const compression = require("compression");
+const {readdirSync} = require("fs")
 
 const app = express();
 
 app.use(helmet());
-
+app.use(cors())
 app.use(compression());
 
 const SwaggerJsDoc = require('swagger-jsdoc')
@@ -20,7 +21,7 @@ app.use((request, response, next) => {
     response.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
     next()
 });
-
+//readdirSync("./routes").map((file)=>app.use("/",require("./routes/"+file)))
 // Load the MySQL pool connection
 const pool = require('./data/config');
 
@@ -45,7 +46,7 @@ const swaggerOptions = {
         }
     },
     // ['.routes/*.js']
-    apis: ["./*.js"]
+    apis: ["*.js"]
 };
 
 const swaggerDocs = SwaggerJsDoc(swaggerOptions);
@@ -479,9 +480,6 @@ app.put('/test/:id',(req,res) =>{
     const { limitTemp } = request.params;
     const { userId } = request.params;
 
-    console.log("\n\n\nRequest param: ",request.params)
-    console.log("\n\n\limitTemp: ", limitTemp)
-
     var sql = `UPDATE GyserTbl
     SET  limitTemp=${limitTemp}
     WHERE userId=${userId} `;
@@ -497,7 +495,101 @@ app.put('/test/:id',(req,res) =>{
     })
    
 });
+//============================================= UPDATE TIMER SCHEDULE ========================================
+
+/**
+ * @swagger
+ * /scheduletime/:scheduleTime/:userId:
+ *  put:
+ *    summary: update schedule time to start-up gyser
+ *    consumes:
+ *      - application/json
+ *    description: update bucket TIME temperature
+ *    parameters:
+ *      - in: query
+ *        name: timeScheduled
+ *      - in: query
+ *        name: userId
+ *        description: update bucket TIME temperature
+ *        schema:
+ *          properties:
+ *            userId: 
+ *              type: integer
+ *            scheduleTime:
+ *              type: string
+ *    responses:
+ *      '201':
+ *        description: A successful update of temperature response
+ *      '404':
+ *        description: failed to update temperature
+ */
+
+app.put('/scheduletime/:scheduleTime/:userId',(request, response) =>{
+    const { scheduleTime } = request.params;
+    const { userId } = request.params;
+
+    var sql = `UPDATE GyserTbl
+    SET  scheduleTime=${scheduleTime}
+    WHERE userId=${userId} `;
+
+    pool.query(sql,(err, result) => {
+        console.log("Results:",result)
+
+        if (err) {
+            console.log("err:", err)
+            return err;
+        }
+        response.status(201).send(result);
+    })
+   
+});
 //============================================= DELETE ========================================
+
+//============================================= UPDATE TIMER SCHEDULE ========================================
+
+/**
+ * @swagger
+ * /toggle-schedule:
+ *  put:
+ *    summary: utoggle schedule time gyser
+ *    consumes:
+ *      - application/json
+ *    description: update whether to schedule or not
+ *    parameters:
+ *      - in: query
+ *        name: userId
+ *        description: update bucket TIME temperature
+ *        schema:
+ *          properties:
+ *            userId: 
+ *              type: integer
+ *    responses:
+ *      '201':
+ *        description: A successful update of temperature response
+ *      '404':
+ *        description: failed to update temperature
+ */
+
+app.put('/toggle-schedule/:userId',(request, response) =>{
+    const { userId } = request.params;
+
+    var sql = `UPDATE GyserTbl
+    SET  isSchedule = NOT isSchedule
+    WHERE userId=${userId} `;
+
+    pool.query(sql,(err, result) => {
+        console.log("Results:",result)
+
+        if (err) {
+            console.log("err:", err)
+            return err;
+        }
+        response.status(201).send(result);
+    })
+   
+});
+
+
 
 //============================================= START =========================================
 app.listen(PORT, () => { 
